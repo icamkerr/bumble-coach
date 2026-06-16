@@ -149,9 +149,10 @@ export default function Home() {
           images: images.map(({ base64, mediaType }) => ({ base64, mediaType })),
         }),
       });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setResult(data);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? `Server error ${res.status}`);
+      if (body?.error) throw new Error(body.error);
+      setResult(body);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
