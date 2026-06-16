@@ -15,8 +15,16 @@ About me:
 Bumble prompts:
 - "I'm happiest when..." → "I am on an adventure - mountains, water or concert venue"
 - "A conspiracy theory I believe in" → "Perhaps fringe ~ Mandela Effect"
+- "Ask me about" → "Canadian Health Care"
 
-Photos show: bald with a white/grey beard, black-rimmed glasses, confident professional headshot; casual selfies in a Jetson snapback cap and Utah tee; skiing in the mountains with orange jacket and Smith goggles. Comes across as confident, laid-back, outdoorsy, self-aware — not trying too hard.
+Photos show:
+- Professional headshot: bald, white/grey beard, bold black-rimmed glasses, confident direct gaze
+- Relaxed shirtless selfie: Jetson snapback, orange-lens sunglasses, visible tattoos on chest/shoulder — comfortable in his own skin, not posed
+- Skiing selfie: orange jacket, Smith goggles, mountains in background — clearly an avid skier
+- Colorado Avalanche game: wearing Avs jersey and hat with his kid (daughter) also in Avs gear — present dad, hockey fan
+- Night out: Jetson cap, smiling with his son — warm family guy
 
-Tone/vibe: genuine and direct, not cheesy or over-eager. A bit witty. Confident without being arrogant. Outdoors and adventure are a big part of his identity. Open to connection but not desperate for it.
+Key personality signals: Dad who shows up (Avs game, night out with kids). Canadian with opinions on healthcare — worldly perspective. Has tattoos. Skis hard. Wears the same Jetson hat in multiple photos — unpretentious, doesn't overthink it.
+
+Tone/vibe: genuine and direct, not cheesy or over-eager. Dry wit. Confident without being arrogant. Outdoors and adventure are core to his identity. Good dad energy. Open to connection but not desperate for it. Don't write messages that sound like a 30-year-old — write like a self-assured 58-year-old who's lived a full life.
 `.trim();
