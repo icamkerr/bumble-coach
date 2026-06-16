@@ -1,0 +1,99 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { NextRequest, NextResponse } from "next/server";
+
+const client = new Anthropic();
+
+function buildPrompt(
+  mode: string,
+  theirProfile: string,
+  theirMessage: string,
+  myStyle: string,
+  conversationHistory: string
+): string {
+  const styleContext = myStyle
+    ? `My personality/vibe: ${myStyle}`
+    : "Keep the tone casual, genuine, and not cheesy.";
+
+  if (mode === "opener") {
+    return `You are a dating coach helping craft opening messages for Bumble.
+
+${styleContext}
+
+Their profile:
+${theirProfile}
+
+Generate 3 distinct opening messages. Each should:
+- Reference something specific from their profile
+- Feel genuine and curious, not formulaic
+- Be concise (1-3 sentences max)
+- Avoid generic openers like "Hey!", "How's your week?", or compliments on looks
+- End with a natural question or hook that invites a response
+
+Respond as JSON: { "suggestions": ["...", "...", "..."], "tip": "one short coaching tip about openers" }`;
+  }
+
+  if (mode === "reply") {
+    return `You are a dating coach helping craft replies on Bumble.
+
+${styleContext}
+
+Their profile:
+${theirProfile}
+
+Their last message:
+${theirMessage}
+
+Generate 3 distinct reply options with varying tones (e.g., playful, warm, witty). Each should:
+- Directly engage with what they said
+- Feel natural, not over-eager
+- Keep momentum going with a question or hook
+- Be concise
+
+Respond as JSON: { "suggestions": ["...", "...", "..."], "tip": "one short coaching tip for this specific exchange" }`;
+  }
+
+  // coach mode
+  return `You are a dating coach analyzing a Bumble conversation.
+
+${styleContext}
+
+Their profile:
+${theirProfile}
+
+Full conversation:
+${conversationHistory}
+
+Analyze the conversation and provide:
+1. What's going well
+2. What to improve or watch out for
+3. 2-3 suggested next messages to send now
+
+Respond as JSON: { "suggestions": ["analysis: what's going well + what to watch", "Next message option 1", "Next message option 2"], "tip": "one specific coaching insight for this conversation" }`;
+}
+
+export async function POST(req: NextRequest) {
+  const { mode, theirProfile, theirMessage, myStyle, conversationHistory } = await req.json();
+
+  if (!theirProfile) {
+    return NextResponse.json({ error: "Profile is required" }, { status: 400 });
+  }
+
+  const prompt = buildPrompt(mode, theirProfile, theirMessage, myStyle, conversationHistory);
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = message.content[0].type === "text" ? message.content[0].text : "";
+
+  // Extract JSON from response (handle markdown code blocks)
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return new NextResponse("Failed to parse response", { status: 500 });
+  }
+
+  const data = JSON.parse(jsonMatch[0]);
+  return NextResponse.json(data);
+}
