@@ -13,7 +13,6 @@ export default function Home() {
   const [mode, setMode] = useState<Mode>("opener");
   const [theirProfile, setTheirProfile] = useState("");
   const [theirMessage, setTheirMessage] = useState("");
-  const [myStyle, setMyStyle] = useState("");
   const [conversationHistory, setConversationHistory] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,7 @@ export default function Home() {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, theirProfile, theirMessage, myStyle, conversationHistory }),
+        body: JSON.stringify({ mode, theirProfile, theirMessage, conversationHistory }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -131,17 +130,8 @@ export default function Home() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Your Vibe <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={myStyle}
-              onChange={(e) => setMyStyle(e.target.value)}
-              placeholder="Describe your tone: e.g. 'witty and sarcastic, love outdoor adventures, work in tech, keep it casual not cheesy'"
-              rows={3}
-              className="w-full text-sm border border-gray-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-xs text-gray-400">✅ Writing as Cameron · 58 · Evergreen · SVP · Adventurer</span>
           </div>
 
           <button

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { MY_PROFILE } from "@/lib/myProfile";
 
 const client = new Anthropic();
 
@@ -7,12 +8,10 @@ function buildPrompt(
   mode: string,
   theirProfile: string,
   theirMessage: string,
-  myStyle: string,
-  conversationHistory: string
+  conversationHistory: string,
 ): string {
-  const styleContext = myStyle
-    ? `My personality/vibe: ${myStyle}`
-    : "Keep the tone casual, genuine, and not cheesy.";
+  const styleContext = `My profile (write in my voice, matching my personality and background):
+${MY_PROFILE}`;
 
   if (mode === "opener") {
     return `You are a dating coach helping craft opening messages for Bumble.
@@ -72,13 +71,13 @@ Respond as JSON: { "suggestions": ["analysis: what's going well + what to watch"
 }
 
 export async function POST(req: NextRequest) {
-  const { mode, theirProfile, theirMessage, myStyle, conversationHistory } = await req.json();
+  const { mode, theirProfile, theirMessage, conversationHistory } = await req.json();
 
   if (!theirProfile) {
     return NextResponse.json({ error: "Profile is required" }, { status: 400 });
   }
 
-  const prompt = buildPrompt(mode, theirProfile, theirMessage, myStyle, conversationHistory);
+  const prompt = buildPrompt(mode, theirProfile, theirMessage, conversationHistory);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
