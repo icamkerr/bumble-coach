@@ -31,6 +31,27 @@ Generate 3 distinct opening messages. Each should:
 Respond as JSON: { "suggestions": ["...", "...", "..."], "tip": "one short coaching tip about openers" }`;
   }
 
+  if (mode === "opening-move") {
+    return `You are a dating coach helping craft a response to a Bumble Opening Move.
+
+${styleContext}
+
+Her profile:
+${theirProfile}
+
+Her Opening Move question (she set this — you must answer it to start the conversation):
+"${theirMessage}"
+
+Write 3 distinct answers to her Opening Move question. Each should:
+- Actually answer her question — don't dodge it
+- Reveal something genuine and specific about Cameron that ties back to his life (mountains, adventure, Colorado, Canadian roots, his work, his kids, hockey)
+- Be conversational and end with a natural follow-up question back to her
+- Feel like a real person answered, not a dating coach template
+- Be concise — 2-4 sentences max
+
+Respond as JSON: { "suggestions": ["...", "...", "..."], "tip": "one tip for following up after she responds to the Opening Move" }`;
+  }
+
   if (mode === "reply") {
     return `You are a dating coach helping craft replies on Bumble.
 

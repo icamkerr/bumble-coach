@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-type Mode = "opener" | "reply" | "coach" | "botcheck";
+type Mode = "opener" | "opening-move" | "reply" | "coach" | "botcheck";
 
 interface Result {
   suggestions: string[];
@@ -149,10 +149,15 @@ export default function Home() {
           images: images.map(({ base64, mediaType }) => ({ base64, mediaType })),
         }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? `Server error ${res.status}`);
-      if (body?.error) throw new Error(body.error);
-      setResult(body);
+      const rawText = await res.text();
+      let body: Record<string, unknown>;
+      try {
+        body = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Server error ${res.status}: ${rawText.slice(0, 200)}`);
+      }
+      if (!res.ok || body?.error) throw new Error((body?.error as string) ?? `Server error ${res.status}`);
+      setResult(body as unknown as Result);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -167,9 +172,10 @@ export default function Home() {
   }
 
   const tabs: { id: Mode; label: string; emoji: string }[] = [
-    { id: "opener", label: "Write an Opener", emoji: "👋" },
-    { id: "reply", label: "Craft a Reply", emoji: "💬" },
-    { id: "coach", label: "Convo Coach", emoji: "🧠" },
+    { id: "opener", label: "Opener", emoji: "👋" },
+    { id: "opening-move", label: "Opening Move", emoji: "🎯" },
+    { id: "reply", label: "Reply", emoji: "💬" },
+    { id: "coach", label: "Coach", emoji: "🧠" },
     { id: "botcheck", label: "Bot Check", emoji: "🤖" },
   ];
 
@@ -360,6 +366,21 @@ export default function Home() {
             />
           </div>
 
+          {mode === "opening-move" && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Their Opening Move Question</label>
+              <p className="text-xs text-gray-400 mb-2">The question she set that you must answer to start the conversation</p>
+              <textarea
+                value={theirMessage}
+                onChange={(e) => setTheirMessage(e.target.value)}
+                placeholder="e.g. 'What's your idea of the perfect Saturday?'"
+                rows={2}
+                className="w-full text-sm border border-gray-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                required
+              />
+            </div>
+          )}
+
           {mode === "reply" && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Their Last Message</label>
@@ -406,9 +427,11 @@ export default function Home() {
             }`}
           >
             {loading
-              ? "Analyzing... 🔍"
+              ? "Thinking... 🐝"
               : mode === "opener"
               ? "Generate Openers ✨"
+              : mode === "opening-move"
+              ? "Answer Her Move 🎯"
               : mode === "reply"
               ? "Craft Replies ✨"
               : mode === "botcheck"
