@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 
-type Mode = "opener" | "reply" | "coach";
+type Mode = "opener" | "reply" | "coach" | "botcheck";
 
 interface Result {
   suggestions: string[];
   tip?: string;
+  score?: number;
+  verdict?: string;
 }
 
 export default function Home() {
@@ -51,6 +53,7 @@ export default function Home() {
     { id: "opener", label: "Write an Opener", emoji: "👋" },
     { id: "reply", label: "Craft a Reply", emoji: "💬" },
     { id: "coach", label: "Convo Coach", emoji: "🧠" },
+    { id: "botcheck", label: "Bot Check", emoji: "🤖" },
   ];
 
   return (
@@ -114,37 +117,45 @@ export default function Home() {
             </div>
           )}
 
-          {mode === "coach" && (
+          {(mode === "coach" || mode === "botcheck") && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Full Conversation (paste the thread)
+                {mode === "botcheck" ? "Their Messages (optional — paste if you've been chatting)" : "Full Conversation (paste the thread)"}
               </label>
               <textarea
                 value={conversationHistory}
                 onChange={(e) => setConversationHistory(e.target.value)}
-                placeholder="Paste the full conversation so far..."
+                placeholder={mode === "botcheck" ? "Paste any messages they've sent you..." : "Paste the full conversation so far..."}
                 rows={6}
                 className="w-full text-sm border border-gray-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                required
+                required={mode === "coach"}
               />
             </div>
           )}
 
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-xs text-gray-400">✅ Writing as Cameron · 58 · Evergreen · SVP · Adventurer</span>
-          </div>
+          {mode !== "botcheck" && (
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-xs text-gray-400">✅ Writing as Cameron · 58 · Evergreen · SVP · Adventurer</span>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 font-bold rounded-2xl shadow-md transition-all disabled:opacity-60 text-lg"
+            className={`w-full py-4 font-bold rounded-2xl shadow-md transition-all disabled:opacity-60 text-lg ${
+              mode === "botcheck"
+                ? "bg-gray-900 hover:bg-gray-700 text-white"
+                : "bg-[#FFCC00] hover:bg-yellow-400 text-gray-900"
+            }`}
           >
             {loading
-              ? "Thinking... 🐝"
+              ? "Analyzing... 🔍"
               : mode === "opener"
               ? "Generate Openers ✨"
               : mode === "reply"
               ? "Craft Replies ✨"
+              : mode === "botcheck"
+              ? "Run Bot Check 🤖"
               : "Analyze Convo ✨"}
           </button>
         </form>
@@ -155,7 +166,43 @@ export default function Home() {
           </div>
         )}
 
-        {result && (
+        {result && mode === "botcheck" && result.verdict && (
+          <div className="mt-8 space-y-4">
+            {/* Verdict banner */}
+            <div className={`rounded-2xl p-5 text-center shadow-md ${
+              result.score! >= 7 ? "bg-red-100 border-2 border-red-400" :
+              result.score! >= 4 ? "bg-yellow-100 border-2 border-yellow-400" :
+              "bg-green-100 border-2 border-green-400"
+            }`}>
+              <p className="text-4xl mb-2">
+                {result.score! >= 7 ? "🚨" : result.score! >= 4 ? "⚠️" : "✅"}
+              </p>
+              <p className={`text-xl font-bold ${
+                result.score! >= 7 ? "text-red-700" :
+                result.score! >= 4 ? "text-yellow-700" :
+                "text-green-700"
+              }`}>{result.verdict}</p>
+              <p className="text-sm mt-1 text-gray-600">Fake score: {result.score}/10</p>
+            </div>
+
+            {/* Findings */}
+            <h2 className="text-lg font-bold text-gray-800">Findings</h2>
+            {result.suggestions.map((s, i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <p className="text-gray-800 text-sm leading-relaxed">{s}</p>
+              </div>
+            ))}
+
+            {result.tip && (
+              <div className="bg-gray-900 rounded-2xl p-5">
+                <p className="text-sm font-semibold text-yellow-400 mb-1">🛡️ Recommended action</p>
+                <p className="text-sm text-gray-100">{result.tip}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {result && mode !== "botcheck" && (
           <div className="mt-8 space-y-4">
             <h2 className="text-lg font-bold text-gray-800">
               {mode === "coach" ? "Coaching Breakdown" : "Suggested Messages"}

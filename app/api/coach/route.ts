@@ -51,8 +51,8 @@ Generate 3 distinct reply options with varying tones (e.g., playful, warm, witty
 Respond as JSON: { "suggestions": ["...", "...", "..."], "tip": "one short coaching tip for this specific exchange" }`;
   }
 
-  // coach mode
-  return `You are a dating coach analyzing a Bumble conversation.
+  if (mode === "coach") {
+    return `You are a dating coach analyzing a Bumble conversation.
 
 ${styleContext}
 
@@ -68,6 +68,39 @@ Analyze the conversation and provide:
 3. 2-3 suggested next messages to send now
 
 Respond as JSON: { "suggestions": ["analysis: what's going well + what to watch", "Next message option 1", "Next message option 2"], "tip": "one specific coaching insight for this conversation" }`;
+  }
+
+  // bot detection mode
+  return `You are an expert at identifying fake profiles, scam accounts, and AI bots on dating apps like Bumble.
+
+Analyze the following profile and/or conversation messages for signs of inauthenticity.
+
+Profile text:
+${theirProfile}
+
+${conversationHistory ? `Messages they have sent:\n${conversationHistory}` : ""}
+
+Evaluate across these red flag categories:
+1. **Profile text** — overly generic, no specific details, sounds AI-written, too perfect or too sparse, inconsistent details
+2. **Photos** — described as: too professional/model-like, only 1 photo, no candid shots, no location context
+3. **Messaging patterns** — responses too fast or perfectly worded, avoids specific questions, pivots to off-platform quickly, mentions financial hardship or foreign location
+4. **Story consistency** — age/job/location that don't add up, vague about where they grew up or work
+5. **Common scam signals** — mentions crypto/investment, asks for money, wants to move to WhatsApp/Telegram immediately, love-bombs fast
+
+Score the profile from 1-10 on likelihood of being fake/bot (10 = almost certainly fake).
+
+Respond as JSON:
+{
+  "score": <1-10>,
+  "verdict": "<LIKELY REAL | SUSPICIOUS | LIKELY FAKE | ALMOST CERTAINLY A BOT>",
+  "suggestions": [
+    "🟢 or 🔴 [Category]: [specific observation]",
+    "🟢 or 🔴 [Category]: [specific observation]",
+    "🟢 or 🔴 [Category]: [specific observation]",
+    "🟢 or 🔴 [Category]: [specific observation]"
+  ],
+  "tip": "one specific recommended action (e.g., ask them X to verify, reverse image search their photo, etc.)"
+}`;
 }
 
 export async function POST(req: NextRequest) {
