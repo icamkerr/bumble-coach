@@ -103,24 +103,56 @@ Respond as JSON:
 }`;
 }
 
-export async function POST(req: NextRequest) {
-  const { mode, theirProfile, theirMessage, conversationHistory } = await req.json();
+interface ImageInput {
+  base64: string;
+  mediaType: string;
+}
 
-  if (!theirProfile) {
-    return NextResponse.json({ error: "Profile is required" }, { status: 400 });
+export async function POST(req: NextRequest) {
+  const { mode, theirProfile, theirMessage, conversationHistory, images } = await req.json() as {
+    mode: string;
+    theirProfile: string;
+    theirMessage: string;
+    conversationHistory: string;
+    images?: ImageInput[];
+  };
+
+  const hasImages = images && images.length > 0;
+
+  if (!theirProfile && !hasImages) {
+    return NextResponse.json({ error: "Add a profile screenshot or paste their bio." }, { status: 400 });
   }
 
   const prompt = buildPrompt(mode, theirProfile, theirMessage, conversationHistory);
 
+  // Build message content — images first, then the text prompt
+  const content: Anthropic.MessageParam["content"] = [];
+
+  if (hasImages) {
+    const imageNote = "The following screenshots are from their Bumble profile. Read all text, prompts, and visible details from the images.";
+    content.push({ type: "text", text: imageNote });
+    for (const img of images) {
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: img.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+          data: img.base64,
+        },
+      });
+    }
+  }
+
+  content.push({ type: "text", text: prompt });
+
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
+    messages: [{ role: "user", content }],
   });
 
   const text = message.content[0].type === "text" ? message.content[0].text : "";
 
-  // Extract JSON from response (handle markdown code blocks)
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     return new NextResponse("Failed to parse response", { status: 500 });

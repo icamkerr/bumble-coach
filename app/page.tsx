@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 type Mode = "opener" | "reply" | "coach" | "botcheck";
 
@@ -11,18 +11,62 @@ interface Result {
   verdict?: string;
 }
 
+interface DroppedImage {
+  base64: string;
+  mediaType: string;
+  preview: string;
+}
+
 export default function Home() {
   const [mode, setMode] = useState<Mode>("opener");
   const [theirProfile, setTheirProfile] = useState("");
   const [theirMessage, setTheirMessage] = useState("");
   const [conversationHistory, setConversationHistory] = useState("");
+  const [images, setImages] = useState<DroppedImage[]>([]);
+  const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function readFileAsBase64(file: File): Promise<DroppedImage> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const [header, base64] = dataUrl.split(",");
+        const mediaType = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+        resolve({ base64, mediaType, preview: dataUrl });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function addFiles(files: FileList | File[]) {
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const newImages = await Promise.all(imageFiles.map(readFileAsBase64));
+    setImages((prev) => [...prev, ...newImages].slice(0, 6));
+  }
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    await addFiles(e.dataTransfer.files);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!theirProfile && images.length === 0) {
+      setError("Add a profile screenshot or paste their bio.");
+      return;
+    }
     setLoading(true);
     setError("");
     setResult(null);
@@ -31,7 +75,13 @@ export default function Home() {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, theirProfile, theirMessage, conversationHistory }),
+        body: JSON.stringify({
+          mode,
+          theirProfile,
+          theirMessage,
+          conversationHistory,
+          images: images.map(({ base64, mediaType }) => ({ base64, mediaType })),
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -87,17 +137,75 @@ export default function Home() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Profile drop zone */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Their Profile Bio & Prompts
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Their Profile
             </label>
+
+            {/* Drop zone */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={() => setDragOver(false)}
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all mb-3 ${
+                dragOver
+                  ? "border-yellow-400 bg-yellow-50"
+                  : "border-gray-200 hover:border-yellow-300 hover:bg-yellow-50/50"
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && addFiles(e.target.files)}
+              />
+              {images.length === 0 ? (
+                <>
+                  <p className="text-2xl mb-1">📸</p>
+                  <p className="text-sm font-medium text-gray-600">Drop profile screenshots here</p>
+                  <p className="text-xs text-gray-400 mt-1">or click to browse · up to 6 images</p>
+                </>
+              ) : (
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {images.map((img, i) => (
+                    <div key={i} className="relative group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.preview}
+                        alt={`Profile screenshot ${i + 1}`}
+                        className="h-24 w-auto rounded-lg object-cover border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setImages((prev) => prev.filter((_, j) => j !== i));
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <div className="h-24 w-16 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-xl">
+                    +
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Text fallback */}
+            <p className="text-xs text-gray-400 mb-2 text-center">— or type / paste their bio below —</p>
             <textarea
               value={theirProfile}
               onChange={(e) => setTheirProfile(e.target.value)}
-              placeholder="Paste their bio, prompts, interests — anything from their profile..."
-              rows={5}
+              placeholder="Paste their bio, prompts, interests..."
+              rows={3}
               className="w-full text-sm border border-gray-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              required
             />
           </div>
 
