@@ -2,7 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { MY_PROFILE } from "@/lib/myProfile";
 
-const client = new Anthropic();
+let client: Anthropic | null = null;
+function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is not set in environment variables. Add it in your Vercel project settings.");
+  }
+  if (!client) client = new Anthropic();
+  return client;
+}
 
 function buildPrompt(
   mode: string,
@@ -165,7 +172,7 @@ export async function POST(req: NextRequest) {
 
   let message;
   try {
-    message = await client.messages.create({
+    message = await getClient().messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: mode === "botcheck" ? 2048 : 1024,
       messages: [{ role: "user", content }],
