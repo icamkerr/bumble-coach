@@ -30,23 +30,30 @@ export default function Home() {
   const [copied, setCopied] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function readFileAsBase64(file: File): Promise<DroppedImage> {
+  function resizeAndEncode(file: File, maxWidth = 800, quality = 0.75): Promise<DroppedImage> {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        const [header, base64] = dataUrl.split(",");
-        const mediaType = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
-        resolve({ base64, mediaType, preview: dataUrl });
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        const base64 = dataUrl.split(",")[1];
+        resolve({ base64, mediaType: "image/jpeg", preview: dataUrl });
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      img.onerror = reject;
+      img.src = objectUrl;
     });
   }
 
   async function addFiles(files: FileList | File[]) {
     const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    const newImages = await Promise.all(imageFiles.map(readFileAsBase64));
+    const newImages = await Promise.all(imageFiles.map((f) => resizeAndEncode(f)));
     setImages((prev) => [...prev, ...newImages].slice(0, 6));
   }
 
