@@ -422,6 +422,12 @@ export default function Home() {
           </div>
         )}
 
+        {result && mode === "botcheck" && !result.verdict && (
+          <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-2xl text-orange-700 text-sm">
+            Got a response but couldn&apos;t parse the verdict. Try again or add more profile detail.
+          </div>
+        )}
+
         {result && mode === "botcheck" && result.verdict && (
           <div className="mt-8 space-y-4">
             <div className={`rounded-2xl p-5 text-center shadow-md ${

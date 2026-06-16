@@ -74,11 +74,8 @@ Respond as JSON: { "suggestions": ["analysis: what's going well + what to watch"
   return `You are an expert at identifying fake profiles, scam accounts, and AI bots on dating apps like Bumble.
 
 Analyze the following profile and/or conversation messages for signs of inauthenticity.
-
-Profile text:
-${theirProfile}
-
-${conversationHistory ? `Messages they have sent:\n${conversationHistory}` : ""}
+${theirProfile ? `\nProfile text:\n${theirProfile}` : "\n(Profile provided as screenshots above — read all visible text, prompts, and details from the images.)"}
+${conversationHistory ? `\nMessages they have sent:\n${conversationHistory}` : ""}
 
 Evaluate across these red flag categories:
 1. **Profile text** — overly generic, no specific details, sounds AI-written, too perfect or too sparse, inconsistent details
@@ -155,9 +152,16 @@ export async function POST(req: NextRequest) {
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return new NextResponse("Failed to parse response", { status: 500 });
+    console.error("No JSON in Claude response:", text);
+    return NextResponse.json({ error: "Claude returned an unexpected response. Try again." }, { status: 500 });
   }
 
-  const data = JSON.parse(jsonMatch[0]);
+  let data;
+  try {
+    data = JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.error("JSON parse error:", e, jsonMatch[0]);
+    return NextResponse.json({ error: "Failed to parse Claude response. Try again." }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
