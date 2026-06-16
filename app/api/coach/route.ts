@@ -163,26 +163,33 @@ export async function POST(req: NextRequest) {
 
   content.push({ type: "text", text: prompt });
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: mode === "botcheck" ? 2048 : 1024,
-    messages: [{ role: "user", content }],
-  });
+  let message;
+  try {
+    message = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: mode === "botcheck" ? 2048 : 1024,
+      messages: [{ role: "user", content }],
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Anthropic API error:", msg);
+    return NextResponse.json({ error: `AI error: ${msg}` }, { status: 500 });
+  }
 
   const text = message.content[0].type === "text" ? message.content[0].text : "";
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.error("No JSON in Claude response:", text);
-    return NextResponse.json({ error: "Claude returned an unexpected response. Try again." }, { status: 500 });
+    console.error("No JSON in Claude response:", text.slice(0, 500));
+    return NextResponse.json({ error: `Unexpected response: ${text.slice(0, 200)}` }, { status: 500 });
   }
 
   let data;
   try {
     data = JSON.parse(jsonMatch[0]);
   } catch (e) {
-    console.error("JSON parse error:", e, jsonMatch[0]);
-    return NextResponse.json({ error: "Failed to parse Claude response. Try again." }, { status: 500 });
+    console.error("JSON parse error:", e, jsonMatch[0].slice(0, 200));
+    return NextResponse.json({ error: "Failed to parse AI response. Try again." }, { status: 500 });
   }
   return NextResponse.json(data);
 }
